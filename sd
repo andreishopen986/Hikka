@@ -1,0 +1,56 @@
+import pyautogui
+import pytesseract
+from PIL import ImageGrab
+import re
+import time
+import pyperclip
+
+# Путь к tesseract (если нужно установить: https://github.com/tesseract-ocr/tesseract)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+# Функция для вычисления выражений
+def evaluate_expression(expression):
+    try:
+        # Вставляем пробелы перед операциями, чтобы не было ошибок
+        expression = re.sub(r'([*/+\-])', r' \1 ', expression)
+        result = eval(expression)  # Используем eval для вычисления
+        return result
+    except Exception as e:
+        return str(e)  # Возвращаем ошибку, если выражение неверное
+
+# Функция для получения текста из чата
+def get_chat_text():
+    # Задайте область экрана, где появляется чат (например, с правой стороны экрана)
+    chat_box_area = (100, 500, 500, 600)  # Примерные координаты, настройте под ваш экран
+    screenshot = ImageGrab.grab(bbox=chat_box_area)
+    text = pytesseract.image_to_string(screenshot)
+    return text
+
+# Функция для отправки ответа в чат
+def send_chat_message(message):
+    pyperclip.copy(message)  # Копируем в буфер обмена
+    pyautogui.hotkey('ctrl', 'v')  # Вставляем в чат
+    pyautogui.press('enter')  # Отправляем сообщение
+
+# Основной цикл
+def main():
+    print("Бот запущен. Он будет следить за чатом...")
+    
+    while True:
+        chat_text = get_chat_text()
+        print(f"Чат: {chat_text}")
+        
+        # Ищем математическое выражение в чате
+        match = re.search(r'(\d+\s*[\+\-\*/]\s*\d+)', chat_text)
+        if match:
+            expression = match.group(0)
+            print(f"Найдено выражение: {expression}")
+            result = evaluate_expression(expression)
+            # Отправляем результат в чат в формате "!8"
+            send_chat_message(f"!{int(result)}")
+        
+        # Пауза перед следующей проверкой
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
